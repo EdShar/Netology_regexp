@@ -1,6 +1,7 @@
 from pprint import pprint
 import csv
 import re
+from collections import defaultdict
 
 
 def read_phonebook():
@@ -24,34 +25,39 @@ def update_names(phonebook, new_names):
         phonebook[str_el][:3] = new_names[str_el][:3]
 
 
-def edit_phone(phonebook):
-    phone_pattern_main = re.compile(r'(\+7)(\(\d{3}\))(\d{3}-\d{2}-\d{2})')
-    for phone in phonebook:
-        print(phone[5])
-        match = phone_pattern_main.match(phone[5])
-        print(match)
+def edit_phone(contacts_list):
+    for phone in contacts_list:
+        if phone[5] != '':
+            phone[5] = re.sub(r'\s+', '', phone[5])
+            phone[5] = re.sub(r'\+7', '8', phone[5])
+            phone[5] = re.sub(r'\(|\)|\-|доб.', '', phone[5])
 
-    # phone_pattern_ext = re.compile(r'(\+7)(\(\d{3}\))(\d{3}-\d{2}-\d{2}) (доб.\d{4})')
-    # for phone in phonebook:
-    #     print(phone[5])
-    #     match = re.findall(phone_pattern_ext, phone[5])
-    #     print(match)
+            phone_prefix = '+7'
+            area_code = phone[5][1:4]
+            number = f'{phone[5][4:7]}-{phone[5][7:9]}-{phone[5][9:11]}'
+            extension = None
 
-        # if match:
-        #     phone_prefix = match.group(1)
-        #     area_code = match.group(2)
-        #     number = match.group(3)
-        #     extension = match.group(4)
-        #     print(f'Префикс: {phone_prefix}')
+            if len(phone[5]) > 11:
+                extension = phone[5][11:15]
 
-        #     formatted_phone = f"{phone_prefix}({area_code}){number} {extension}"
-        # else:
-        #     formatted_phone = re.sub(r'\D', '', phone)
-        #     formatted_phone = re.sub(r'(\d)(\d{3})(\d{3})(\d{2})(\d{2})', r'+7(\2)\3-\4-\5', formatted_phone)
-        #
-        # phone[5] = formatted_phone
+            if extension is not None:
+                phone[5] = f'{phone_prefix}({area_code}){number} доб.{extension}'
+            else:
+                phone[5] = f'{phone_prefix}({area_code}){number}'
 
-        # (\+7)(\(\d{3}\))(\d{3})-(\d{2})-(\d{2}) (доб.\d{4})|(\+7)(\(\d{3}\))(\d{3})-(\d{2})-(\d{2})
+
+def find_duplicates(contacts_list):
+    data = defaultdict(list)
+
+    for info in contacts_list:
+        key = tuple(info[:2])
+        for item in info:
+            if item not in data[key]:
+                data[key].append(item)
+
+    new_list = list(data.values())
+    return new_list
+
 
 def create_phonebook(contacts_list):
     with open("phonebook.csv", "w", encoding="utf8") as f:
@@ -62,8 +68,7 @@ def create_phonebook(contacts_list):
 if __name__ == '__main__':
     main_phonebook = read_phonebook()
     edit_phone(main_phonebook)
-
-    # formatted_names = join_names(main_phonebook)
-    # update_names(main_phonebook, formatted_names)
-
+    formatted_names = join_names(main_phonebook)
+    update_names(main_phonebook, formatted_names)
+    create_phonebook(find_duplicates(main_phonebook))
 
